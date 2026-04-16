@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/openclaw-contrib/trust-gate-plugin/schemas/principal.snapshot.schema.json",
+  "title": "principal.snapshot.json",
+  "description": "Identity snapshot for the single principal (operator) of a trust-gate deployment. The principal is the only interlocutor granted tool access and Gate bypass.",
+  "type": "object",
+  "required": ["version", "principal_discord_id"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Monotonic version number. Increment on every snapshot update. Used by the plugin to invalidate cached copies."
+    },
+    "principal_discord_id": {
+      "type": "string",
+      "pattern": "^[0-9]{17,20}$",
+      "description": "Discord snowflake (numeric string, 17-20 digits) of the principal's primary account."
+    },
+    "principal_discord_username_hint": {
+      "type": "string",
+      "description": "Display-name hint used for impersonation detection. Not authoritative; the snowflake is the trust anchor."
+    },
+    "alt_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[0-9]{17,20}$"
+      },
+      "description": "Additional snowflakes that also resolve to the principal (alt accounts, testing accounts). Treated identically to principal_discord_id."
+    }
+  }
+}

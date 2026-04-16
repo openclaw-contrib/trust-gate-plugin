@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/openclaw-contrib/trust-gate-plugin/schemas/friends.snapshot.schema.json",
+  "title": "friends.snapshot.json",
+  "description": "Identity snapshot for friend-tier interlocutors of a trust-gate deployment. Friends receive a softer Gate policy than interlopers but cannot invoke tools.",
+  "type": "object",
+  "required": ["version", "friends"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Monotonic version number. Increment on every snapshot update. Used by the plugin to invalidate cached copies."
+    },
+    "friends": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["discord_id", "handle_hint", "status"],
+        "additionalProperties": false,
+        "properties": {
+          "discord_id": {
+            "type": "string",
+            "pattern": "^[0-9]{17,20}$",
+            "description": "Discord snowflake of this friend. Immutable trust anchor."
+          },
+          "handle_hint": {
+            "type": "string",
+            "description": "Display-name hint for impersonation detection. Not authoritative."
+          },
+          "status": {
+            "type": "string",
+            "enum": ["active", "suspended", "removed"],
+            "description": "Current friend status. Only 'active' friends receive friend-tier treatment; 'suspended' and 'removed' are resolved to interloper tier."
+          },
+          "added_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO-8601 timestamp when the friend was first added."
+          },
+          "notes": {
+            "type": "string",
+            "description": "Free-form operator notes. Not read by the plugin."
+          }
+        }
+      }
+    }
+  }
+}

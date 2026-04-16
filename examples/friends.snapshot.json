@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "friends": [
+    {
+      "discord_id": "000000000000000002",
+      "handle_hint": "example_friend_alpha",
+      "status": "active",
+      "added_at": "2026-01-01T00:00:00Z",
+      "notes": "Stub friend entry — replace with real snowflakes in your deployment."
+    },
+    {
+      "discord_id": "000000000000000003",
+      "handle_hint": "example_friend_beta",
+      "status": "active",
+      "added_at": "2026-01-02T00:00:00Z"
+    }
+  ]
+}

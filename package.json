@@ -1,0 +1,26 @@
+{
+  "name": "openclaw-trust-gate-plugin",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "OpenClaw plugin: trust-tier enforcement, inline Gate evaluation, untrusted-content encoding, memory recall, and tool gating for mixed-trust AI deployments.",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/openclaw-contrib/trust-gate-plugin.git"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "openclaw": {
+    "extensions": ["./index.ts"],
+    "compat": {
+      "pluginApi": ">=2026.4.12",
+      "minGatewayVersion": "2026.4.12"
+    }
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "vitest": "^2.1.0"
+  }
+}

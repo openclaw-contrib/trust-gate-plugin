@@ -1,0 +1,59 @@
+{
+  "id": "trust-gate",
+  "name": "Trust Gate",
+  "description": "Trust-tier enforcement, inline Gate evaluation, untrusted-content encoding, automatic memory recall, and tool gating for OpenClaw deployments with mixed-trust interlocutors.",
+  "kind": "middleware",
+  "enabledByDefault": false,
+  "configSchema": {
+    "type": "object",
+    "properties": {
+      "identityPath": {
+        "type": "string",
+        "default": "state/identity",
+        "description": "Path to identity files (principal.json, friends.json) relative to workspace"
+      },
+      "memoryPath": {
+        "type": "string",
+        "default": "memory/interlocutors",
+        "description": "Path to per-interlocutor memory files relative to workspace"
+      },
+      "gatePath": {
+        "type": "string",
+        "default": "state/gate",
+        "description": "Path to Gate rules, templates, and adversarial suite relative to workspace"
+      },
+      "recallBudgetTokens": {
+        "type": "number",
+        "default": 4000,
+        "description": "Max tokens of recalled memory to inject per message (Layer 1)"
+      },
+      "gateTimeoutMs": {
+        "type": "number",
+        "default": 10000,
+        "description": "Timeout for inline Haiku Gate API call in milliseconds"
+      },
+      "gateModel": {
+        "type": "string",
+        "default": "claude-haiku-4-5",
+        "description": "Model to use for inline Gate evaluation"
+      },
+      "layer2Enabled": {
+        "type": "boolean",
+        "default": false,
+        "description": "Enable cross-domain memory search (Layer 2 recall) — Phase 1B+"
+      },
+      "consecutiveFailureThreshold": {
+        "type": "number",
+        "default": 3,
+        "description": "Consecutive Gate API failures before an escalation log is emitted. Notify-to-principal path is planned for a future release; v0.1.0 logs only."
+      }
+    }
+  },
+  "uiHints": {
+    "identityPath": { "label": "Identity files path", "sensitivity": "low" },
+    "gatePath": { "label": "Gate rules path", "sensitivity": "low" },
+    "recallBudgetTokens": { "label": "Memory recall budget (tokens)", "sensitivity": "low" },
+    "gateTimeoutMs": { "label": "Gate API timeout (ms)", "sensitivity": "low" },
+    "gateModel": { "label": "Gate model", "sensitivity": "low" }
+  }
+}
