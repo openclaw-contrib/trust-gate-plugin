@@ -29,11 +29,14 @@ Published reference implementation, v0.1.0. See [SECURITY.md](SECURITY.md) for w
 
 ## Install
 
+This plugin is distributed as a repo, not an npm package. Clone it directly into your OpenClaw workspace's extensions folder:
+
 ```bash
-npm install
+git clone https://github.com/openclaw-contrib/trust-gate-plugin.git \
+  path/to/workspace/.openclaw/extensions/trust-gate
 ```
 
-Drop the plugin directory into your OpenClaw workspace's extensions folder (e.g. `workspace/.openclaw/extensions/trust-gate/`), then enable it in `openclaw.json`:
+Then enable it in `openclaw.json`:
 
 ```json
 {
@@ -42,6 +45,8 @@ Drop the plugin directory into your OpenClaw workspace's extensions folder (e.g.
   }
 }
 ```
+
+`npm install` is only needed if you plan to run the test suite (installs `vitest`); it is not required to use the plugin.
 
 ## Gateway config (required)
 
