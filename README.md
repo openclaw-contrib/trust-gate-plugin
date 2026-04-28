@@ -3,11 +3,11 @@
 Reference implementation of the trust-tier pattern from the [Ryn Orchestrator Reference Design](https://github.com/openclaw-contrib/orchestrator-protocol-spec).
 
 Implements the trust-tier pattern via OpenClaw plugin hooks:
-- **Trust-tier tagging** — every inbound message is tagged `principal` / `friend` / `interloper` based on platform-stable identity (Discord snowflakes).
-- **Entity encoding + memory recall** — user content is wrapped in `<untrusted>` tags with HTML-entity-encoded payloads; per-interlocutor memory is auto-injected into the system prompt.
-- **Inline Gate evaluation** — non-principal drafts are evaluated by a Haiku judge before send, with approve / revise / reject verdicts.
-- **Safety backstop** — final filter on outbound messages for architecture leaks and raw untrusted-tag escape.
-- **Tool gating** — only the principal can invoke tools; friend and interloper tiers are conversation-only.
+- **Trust-tier tagging** — every inbound message is tagged `principal` / `friend` / `interloper` based on platform-stable identity (Discord snowflakes). Tier is written to an in-process sender cache keyed by `sessionKey` so downstream hooks can read it.
+- **Memory recall** — per-interlocutor memory is auto-injected into the system prompt via a `registerMemoryPromptSupplement` callback. (The originally-planned `<untrusted>`-tag entity-encoder ran on `before_agent_start`, which does not fire reliably for workspace plugins; the equivalent untrusted-content discipline is enforced via gate `rules.md` instructions and the safety-backstop's outbound check for raw `<untrusted>` tags.)
+- **Inline Gate evaluation** — non-principal drafts are evaluated by a Haiku judge before send. Verdict surface is binary: `approve` ships the draft, `deflect` substitutes a tier-appropriate template from `deflection_templates.md`. (The `revise` and `reject` verdicts from earlier design iterations are retired — see [trust-gate-plugin.md §3](https://github.com/openclaw-contrib/orchestrator-protocol-spec/blob/main/trust-gate-plugin.md) in the spec repo.)
+- **Safety backstop** — final filter on outbound messages for architecture leaks and raw untrusted-tag escape, registered ahead of the Gate so a cancel short-circuits the Haiku call.
+- **Tool gating** — only the principal can invoke tools; friend and interloper tiers are conversation-only. Resolution chain: sender-cache → `channel_tiers` → cron-sessionKey-shape grant → deny.
 - **Turn logging** — every turn is logged to per-interlocutor `turns.ndjson` for lossless recovery.
 
 Fail-closed semantics on `inbound_claim` and `message_sending` are enforced at the OpenClaw gateway — see [Gateway config](#gateway-config-required) below.
@@ -20,7 +20,7 @@ Published reference implementation, v0.1.0. See [SECURITY.md](SECURITY.md) for w
 
 - Hobbyists building personal AI companions exposed to Discord or similar mixed-trust channels on OpenClaw.
 - Researchers wanting a runnable companion to the trust-tier reference design.
-- OpenClaw plugin authors looking for a reference of the hook composition pattern (`inbound_claim` → context injection → `reply_dispatch` → `message_sending` with `before_tool_call` and `agent_end` alongside).
+- OpenClaw plugin authors looking for a reference of the hook composition pattern (`inbound_claim` (priority 100) → memory-supplement callback → two handlers on `message_sending` (safety-backstop first, then gate-evaluator) → `before_tool_call` → `agent_end`).
 
 ## Who this is NOT for
 
@@ -73,7 +73,7 @@ The plugin reads config via `configSchema` in [`openclaw.plugin.json`](openclaw.
 | `memoryPath` | `memory/interlocutors` | Directory for per-interlocutor memory (one subdirectory per snowflake). |
 | `gatePath` | `state/gate` | Directory for Gate rules, deflection templates, pre-check allowlist, and verdict log. |
 | `recallBudgetTokens` | `4000` | Max tokens of recalled memory injected per message. |
-| `gateTimeoutMs` | `10000` | Timeout for the inline Haiku Gate call. |
+| `gateTimeoutMs` | `60000` | Self-managed timeout on the inline Haiku Gate call. **Default raised from 10s in v0.1.0** — long-prompt evaluations under load were timing out at 10s, returning a transient error string the parser correctly flagged as not-a-verdict and triggering deflect-on-everything. 30s minimum, 60s recommended. |
 | `gateModel` | `claude-haiku-4-5` | Model used for Gate evaluation. |
 | `consecutiveFailureThreshold` | `3` | Consecutive Gate API failures before an error log is emitted. (The notify-to-principal path is planned; v0.1.0 logs only.) |
 
@@ -111,10 +111,11 @@ Bump the `version` field on every update — the plugin reloads snapshots whenev
 
 ## Gate rules
 
-The Gate reads plain-text rules from `gatePath/rules.md` each turn (cached, auto-reloaded on mtime change). Write your rules as a system prompt for a Haiku judge that emits `APPROVE` / `REVISE: <text>` / `REJECT: <reason>` verdicts. Keep rules deployment-private — the published adversarial-test pattern expects the rules themselves to be a trust boundary.
+The Gate reads plain-text rules from `gatePath/rules.md` each turn (cached, auto-reloaded on mtime change). Write your rules as a system prompt for a Haiku judge that emits one of two verdicts on its own line: `APPROVE` (ship the draft) or `DEFLECT: <brief reason>` (replace with a template). The legacy `REJECT` keyword is also accepted for compatibility but treated as `DEFLECT`. The parser tolerates leading markdown emphasis (`**APPROVE**`, `> APPROVE`), and on ambiguous responses logs the raw output at `WARN` level for tuning. Keep rules deployment-private — the published adversarial-test pattern expects the rules themselves to be a trust boundary.
 
 Also expected in `gatePath`:
-- `degraded_templates.md` — static deflection lines used when the Gate API fails or returns REJECT. Two sections: `## For Interlopers` and `## For Friends`.
+- `deflection_templates.md` — tier-keyed templates substituted on a `deflect` verdict. Two sections: `## For Interlopers` and `## For Friends`.
+- `degraded_templates.md` — static deflection lines used when the Gate API itself is degraded (timeout, empty, or unparseable response, after all retries). Same two-section structure as `deflection_templates.md`.
 - `precheck_allowlist.json` — exact-string fast-path bypasses (e.g., trivial acknowledgments). Shape: `{ "allowed": ["ok", "got it", ...] }`.
 
 ## Test
